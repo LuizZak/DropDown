@@ -11,6 +11,7 @@ import UIKit
 public typealias Index = Int
 public typealias Closure = () -> Void
 public typealias SelectionClosure = (Index, String) -> Void
+public typealias SelectionConfirmClosure = (Index, String) -> Bool
 public typealias ConfigurationClosure = (Index, String) -> String
 public typealias CellConfigurationClosure = (Index, String, DropDownCell) -> Void
 private typealias ComputeLayoutTuple = (x: CGFloat, y: CGFloat, width: CGFloat, offscreenHeight: CGFloat)
@@ -331,6 +332,12 @@ public final class DropDown: UIView {
 
 	/// The action to execute when the user selects a cell.
 	public var selectionAction: SelectionClosure?
+    
+    /// The action to execute when checking whether the drop down should allow
+    /// selection of a cell the user selected.
+    /// If `false` is returned, no `selectionAction` is fired, and the drop down
+    /// remains visible.
+    public var canSelectAction: SelectionConfirmClosure?
 
 	/// The action to execute when the drop down will show.
 	public var willShowAction: Closure?
@@ -922,6 +929,18 @@ extension DropDown: UITableViewDataSource, UITableViewDelegate {
 	public func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
 		cell.isSelected = (indexPath as NSIndexPath).row == selectedRowIndex
 	}
+    
+    public func tableView(_ tableView: UITableView, willSelectRowAt indexPath: IndexPath) -> IndexPath? {
+        guard let canSelect = canSelectAction else {
+            return indexPath
+        }
+        
+        if(canSelect(indexPath.row, dataSource[indexPath.row])) {
+            return indexPath
+        }
+        
+        return nil
+    }
 
 	public func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
 		selectedRowIndex = (indexPath as NSIndexPath).row
